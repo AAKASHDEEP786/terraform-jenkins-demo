@@ -1,9 +1,19 @@
-resource "aws_instance" "demo_ec2" {
+resource "aws_security_group" "web" {
 
-  ami           = "ami-07a00cf47dbbc844c"
-  instance_type = "t2.micro"
+  name   = "web-sg"
+  vpc_id = "vpc-056480a0171a67a31"
 
-  tags = {
-    Name = "jenkins-demo"
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
