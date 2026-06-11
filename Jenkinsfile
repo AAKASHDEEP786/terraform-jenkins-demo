@@ -36,6 +36,11 @@ pipeline {
             }
         }
 
+        stage('Checkov Scan') {
+            steps {
+                sh 'checkov -d .'
+            }
+        }
 
 
         stage('Terraform Plan') {
