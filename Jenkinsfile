@@ -2,6 +2,14 @@ pipeline {
 
     agent any
 
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['PLAN', 'APPLY', 'DESTROY'],
+            description: 'Terraform Action'
+        )
+    }
+
     environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
@@ -16,27 +24,9 @@ pipeline {
             }
         }
 
-        stage('AWS Identity Check') {
-            steps {
-                sh 'aws sts get-caller-identity'
-            }
-        }
-
-        stage('Terraform Version') {
-            steps {
-                sh 'terraform version'
-            }
-        }
-
         stage('Terraform Init') {
             steps {
                 sh 'terraform init'
-            }
-        }
-
-        stage('Terraform Format Check') {
-            steps {
-                sh 'terraform fmt -check'
             }
         }
 
@@ -46,37 +36,43 @@ pipeline {
             }
         }
 
-        stage('Terraform Plan') {
+        stage('Checkov Scan') {
             steps {
-                sh 'terraform plan -out=tfplan'
+                sh 'checkov -d .'
             }
         }
 
-        stage('Approval') {
+        stage('Terraform Plan') {
             steps {
-                input message: 'Apply Terraform Changes?'
+                sh 'terraform plan'
             }
         }
 
         stage('Terraform Apply') {
+            when {
+                expression { params.ACTION == 'APPLY' }
+            }
             steps {
-                sh 'terraform apply -auto-approve tfplan'
+                sh 'terraform apply -auto-approve'
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression { params.ACTION == 'DESTROY' }
+            }
+            steps {
+                sh 'terraform destroy -auto-approve'
             }
         }
     }
 
     post {
-
         success {
-            echo 'Infrastructure deployed successfully'
+            echo 'Pipeline Success'
         }
-
         failure {
-            echo 'Pipeline failed'
-        }
-
-        always {
-            cleanWs()
+            echo 'Pipeline Failed'
         }
     }
 }
